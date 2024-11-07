@@ -26,8 +26,10 @@ Route::get('/loginReg', function () {
 Route::post('/register', [UserController::class, 'register'])->name('register');
 Route::get('/loginReg', [UserController::class, 'showLoginRegForm'])->name('login.form');
 Route::post('/login', [UserController::class, 'login'])->name('login');
-Route::post('/logout', [UserController::class, 'logout'])->name('logout')->middleware('auth');
+Route::get('/logout', [UserController::class, 'logout'])->name('logout')->middleware('auth');
 Route::post('/createPost', [PostController::class, 'store'])->name('createPost');
+Route::delete('/deletePost/{id}', [PostController::class, 'destroy'])->name('deletePost');
+Route::PUT('/updatePost/{id}', [PostController::class, 'update'])->name('posts.update');
 Route::get('/blogs', [PostController::class, 'index'])->name('blogs');
 Route::post('/posts/{postId}/comments', [CommentController::class, 'store'])->name('comments.store');
 Route::get('/comments/{id}/edit', [CommentController::class, 'edit'])->name('comments.edit');

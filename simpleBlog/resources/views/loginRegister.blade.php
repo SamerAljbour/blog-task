@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login/Register</title>
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .form-container {
       max-width: 400px;
@@ -61,6 +63,12 @@
     .hidden {
       display: none;
     }
+
+    .error-message {
+      color: red;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -73,7 +81,8 @@
             @endforeach
         </ul>
     </div>
-@endif
+    @endif
+
     <!-- Login Form -->
     <h2 id="loginTitle">Login</h2>
     <form id="loginForm" method="POST" action="{{ route('login') }}">
@@ -81,10 +90,12 @@
       <div class="form-group">
         <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" name="email">
+        <div id="loginEmailError" class="error-message"></div> <!-- Error message for email -->
       </div>
       <div class="form-group">
         <label for="loginPassword">Password</label>
         <input type="password" id="loginPassword" name="password">
+        <div id="loginPasswordError" class="error-message"></div> <!-- Error message for password -->
       </div>
       <button type="submit">Login</button>
     </form>
@@ -95,72 +106,168 @@
         @csrf
         <div class="form-group">
             <label for="registerName">Name</label>
-            <input type="text" id="registerName" name="name" required>
+            <input type="text" id="registerName" name="name">
+            <div id="registerNameError" class="error-message"></div> <!-- Error message for name -->
         </div>
         <div class="form-group">
             <label for="registerEmail">Email</label>
-            <input type="email" id="registerEmail" name="email" required>
+            <input type="email" id="registerEmail" name="email">
+            <div id="registerEmailError" class="error-message"></div> <!-- Error message for email -->
         </div>
         <div class="form-group">
             <label for="registerPassword">Password</label>
-            <input type="password" id="registerPassword" name="password" required>
+            <input type="password" id="registerPassword" name="password">
+            <div id="registerPasswordError" class="error-message"></div> <!-- Error message for password -->
         </div>
         <button type="submit">Register</button>
     </form>
-
 
     <!-- Toggle Link -->
     <a href="#" class="toggle-link" id="toggleFormLink">Register instead</a>
   </div>
 
+  <!-- Include jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  @if(session('success'))
   <script>
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const loginTitle = document.getElementById('loginTitle');
-    const registerTitle = document.getElementById('registerTitle');
-    const toggleFormLink = document.getElementById('toggleFormLink');
+      Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: '{{ session('success') }}',
+          showConfirmButton: true,
+      });
+  </script>
+  @endif
+
+  @if(session('error'))
+  <script>
+      Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: '{{ session('error') }}',
+          showConfirmButton: true
+      });
+  </script>
+  @endif
+
+  <script>
+    const loginForm = $('#loginForm');
+    const registerForm = $('#registerForm');
+    const loginTitle = $('#loginTitle');
+    const registerTitle = $('#registerTitle');
+    const toggleFormLink = $('#toggleFormLink');
     let isLoginForm = true;
 
-    toggleFormLink.addEventListener('click', (e) => {
-
+    toggleFormLink.click((e) => {
+      e.preventDefault();
       isLoginForm = !isLoginForm;
       toggleForms();
     });
 
     function toggleForms() {
       if (isLoginForm) {
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        loginTitle.classList.remove('hidden');
-        registerTitle.classList.add('hidden');
-        toggleFormLink.textContent = 'Register instead';
+        loginForm.removeClass('hidden');
+        registerForm.addClass('hidden');
+        loginTitle.removeClass('hidden');
+        registerTitle.addClass('hidden');
+        toggleFormLink.text('Register instead');
       } else {
-        loginForm.classList.add('hidden');
-        registerForm.classList.remove('hidden');
-        loginTitle.classList.add('hidden');
-        registerTitle.classList.remove('hidden');
-        toggleFormLink.textContent = 'Login instead';
+        loginForm.addClass('hidden');
+        registerForm.removeClass('hidden');
+        loginTitle.addClass('hidden');
+        registerTitle.removeClass('hidden');
+        toggleFormLink.text('Login instead');
       }
     }
 
-    loginForm.addEventListener('submit', (e) => {
+    // Regex for Email and Password validation
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
+    function validateLoginForm() {
+      let valid = true;
 
-      console.log('Login - Email:', email);
-      console.log('Login - Password:', password);
+      // Clear previous errors
+      $('.error-message').text('');
+
+      const email = $('#loginEmail').val();
+      const password = $('#loginPassword').val();
+
+      // Email validation
+      if (!email) {
+        $('#loginEmailError').text('Email is required');
+        valid = false;
+      } else if (!emailRegex.test(email)) {
+        $('#loginEmailError').text('Please enter a valid email address');
+        valid = false;
+      }
+
+      // Password validation
+      if (!password) {
+        $('#loginPasswordError').text('Password is required');
+        valid = false;
+      } else if (!passwordRegex.test(password)) {
+        $('#loginPasswordError').text('Password must be at least 8 characters long, include uppercase, lowercase, a number, and a special character');
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function validateRegisterForm() {
+      let valid = true;
+
+      // Clear previous errors
+      $('.error-message').text('');
+
+      const name = $('#registerName').val();
+      const email = $('#registerEmail').val();
+      const password = $('#registerPassword').val();
+
+      // Name validation
+      if (!name) {
+        $('#registerNameError').text('Name is required');
+        valid = false;
+      }
+
+      // Email validation
+      if (!email) {
+        $('#registerEmailError').text('Email is required');
+        valid = false;
+      } else if (!emailRegex.test(email)) {
+        $('#registerEmailError').text('Please enter a valid email address');
+        valid = false;
+      }
+
+      // Password validation
+      if (!password) {
+        $('#registerPasswordError').text('Password is required');
+        valid = false;
+      } else if (!passwordRegex.test(password)) {
+        $('#registerPasswordError').text('Password must be at least 8 characters long, include uppercase, lowercase, a number, and a special character');
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    // Handle Login Form Validation
+    loginForm.submit(function (e) {
+      e.preventDefault();
+
+      if (validateLoginForm()) {
+        this.submit(); // Submit form if valid
+      }
     });
 
-    registerForm.addEventListener('submit', (e) => {
+    // Handle Register Form Validation
+    registerForm.submit(function (e) {
+      e.preventDefault();
 
-      const name = document.getElementById('registerName').value;
-      const email = document.getElementById('registerEmail').value;
-      const password = document.getElementById('registerPassword').value;
-
-      console.log('Register - Name:', name);
-      console.log('Register - Email:', email);
-      console.log('Register - Password:', password);
+      if (validateRegisterForm()) {
+        this.submit(); // Submit form if valid
+      }
     });
   </script>
 </body>

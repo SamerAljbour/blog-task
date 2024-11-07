@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Controllers/PostController.php
-
 namespace App\Http\Controllers;
 
 use App\Models\Post;
@@ -13,9 +11,12 @@ class PostController extends Controller
     // Display all posts
     public function index()
     {
-        $posts = Post::with(['comments', 'user'])->get();
-        // dd($posts);
-        return view('blog', compact('posts'));
+        try {
+            $posts = Post::with(['comments', 'user'])->get();
+            return view('blog', compact('posts'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Something went wrong while loading the posts. Please try again later.');
+        }
     }
 
     // Show form for creating a new post
@@ -27,26 +28,30 @@ class PostController extends Controller
     // Store a new post in the database
     public function store(Request $request)
     {
-        // Validate the incoming request
+        try {
+            // Validate the incoming request
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'content' => 'required|string',
+            ]);
 
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-        ]);
+            // Create a new Post instance
+            $post = new Post();
 
-        // Create a new Post instance
-        $post = new Post();
+            // Assign the validated data to the Post model
+            $post->title = $request->input('title');
+            $post->content = $request->input('content');
+            $post->user_id = $request->input('user_id');  // Assuming user_id is passed from the form
 
-        // Assign the validated data to the Post model
-        $post->title = $request->input('title');
-        $post->content = $request->input('content');
-        $post->user_id = $request->input('user_id');
+            // Save the post to the database
+            $post->save();
 
-        // Save the post to the database
-
-        $post->save();
-        // Redirect to the posts index page with a success message
-        return redirect()->back()->with('success', 'Post created successfully');
+            // Redirect to the posts index page with a success message
+            return redirect()->back()->with('success', 'Your post has been created successfully!');
+        } catch (\Exception $e) {
+            // Catch any exceptions and return an error message
+            return redirect()->back()->with('error', 'There was an issue creating the post. Please try again.');
+        }
     }
 
     // Show a single post
@@ -62,25 +67,56 @@ class PostController extends Controller
     }
 
     // Update the post in the database
-    public function update(Request $request, Post $post)
+    public function update(Request $request, string $postId)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'content' => 'required|string',
+            ]);
 
-        $post->update([
-            'title' => $request->title,
-            'content' => $request->content,
-        ]);
+            // Find the post
+            $post = Post::find($postId);
 
-        return redirect()->route('posts.index')->with('success', 'Post updated successfully');
+            // Check if post exists
+            if (!$post) {
+                return redirect()->back()->with('error', 'Post not found. It might have been deleted or does not exist.');
+            }
+
+            // Assign the validated data to the Post model
+            $post->title = $request->input('title');
+            $post->content = $request->input('content');
+
+            // Save the post to the database
+            $post->save();
+
+            // Redirect to the posts index page with a success message
+            return redirect()->back()->with('success', 'Your post has been updated successfully!');
+        } catch (\Exception $e) {
+            // Catch any exceptions and return an error message
+            return redirect()->back()->with('error', 'There was an issue updating the post. Please try again later.');
+        }
     }
 
     // Delete a post
-    public function destroy(Post $post)
+    public function destroy(string $postId)
     {
-        $post->delete();
-        return redirect()->route('posts.index')->with('success', 'Post deleted successfully');
+        try {
+            $post = Post::find($postId);
+
+            // Check if the post exists
+            if (!$post) {
+                return redirect()->back()->with('error', 'Post not found. It might have already been deleted.');
+            }
+
+            // Delete the post
+            $post->delete();
+
+            // Redirect back with a success message
+            return redirect()->back()->with('success', 'Your post has been deleted successfully.');
+        } catch (\Exception $e) {
+            // Catch any exceptions and return an error message
+            return redirect()->back()->with('error', 'There was an issue deleting the post. Please try again later.');
+        }
     }
 }
